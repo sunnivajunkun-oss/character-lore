@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>人设编辑器 · JSON 档案版</title>
+<style>
+:root { --bg:#f7f8fb;--card:#fff;--ink:#202536;--muted:#788195;--line:#e5e9f0;--accent:#4c60d4;--accent-soft:#eef0ff;--danger:#c84750;--shadow:0 4px 23px rgba(25,38,77,.035); }
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+button,select,textarea{font:inherit}
+button{cursor:pointer}
+button:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #b8c1ff;outline-offset:2px}
+.shell{width:min(970px,100%);margin:0 auto;padding:32px 24px 90px}
+.hero{margin-bottom:25px}
+.hero-top{display:flex;align-items:start;gap:20px;justify-content:space-between}
+.kicker{font-size:12px;letter-spacing:.11em;color:var(--accent);font-weight:700}
+h1{font-size:27px;line-height:1.25;margin:7px 0 9px;font-weight:750;letter-spacing:-.035em}
+.lede{color:var(--muted);margin:0;font-size:13px}
+.save-state{display:flex;align-items:center;gap:6px;color:#738096;font-size:12px;white-space:nowrap;padding-top:6px}
+.save-state .dot{height:7px;width:7px;border-radius:50%;background:#54a785;flex:none}
+.save-state.unsaved .dot{background:#dea34b}
+.save-state.error .dot{background:#ca5050}
+.actionbar{display:flex;align-items:center;gap:9px;margin:23px 0 0;flex-wrap:wrap}
+.btn{border:1px solid var(--line);border-radius:10px;padding:9px 17px;background:#fff;color:var(--ink);font-size:13px;font-weight:650;min-height:39px;transition:background .15s,border-color .15s,transform .15s;white-space:nowrap}
+.btn:hover{background:#f6f7fb;border-color:#cdd3e0}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{background:#3e50ba}
+.btn.ghost{border-color:transparent;background:transparent;color:#6c768d}
+.btn.ghost:hover{background:#eceff8}
+.btn.danger{color:var(--danger)}
+.btn.danger:hover{background:#fff4f3;border-color:#f2cfd0}
+.toolbar-note{margin-left:auto;color:#9aa2b2;font-size:12px}
+.more{position:relative;z-index:8}
+.more>summary{list-style:none;cursor:pointer}
+.more>summary::-webkit-details-marker{display:none}
+.more[open]>.menu{display:flex}
+.menu{position:absolute;right:0;top:calc(100% + 8px);width:182px;padding:6px;border:1px solid var(--line);background:#fff;box-shadow:0 12px 45px rgba(36,46,84,.13);border-radius:12px;flex-direction:column;z-index:10}
+.menu button{border:0;background:transparent;text-align:left;padding:9px 12px;border-radius:7px;color:var(--ink);font-size:13px}
+.menu button:hover{background:#f2f4fa}
+.menu button.danger{color:var(--danger)}
+.menu hr{border:0;border-top:1px solid var(--line);width:100%;margin:3px 0}
+.notice{margin-top:20px;border-radius:12px;background:#f0f2ff;border:1px solid #e2e6ff;color:#555f88;padding:12px 15px;font-size:12px;line-height:1.8}
+.notice strong{color:#4c60b4}
+.content{display:flex;flex-direction:column;gap:14px}
+.panel{border:1px solid var(--line);background:var(--card);border-radius:15px;overflow:hidden;box-shadow:var(--shadow)}
+.panel>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:13px;padding:19px 21px;user-select:none}
+.panel>summary::-webkit-details-marker{display:none}
+.panel>summary:hover{background:#fcfcff}
+.panel-heading{display:flex;align-items:center;gap:12px;min-width:0}
+.panel-num{height:30px;width:30px;display:inline-flex;justify-content:center;align-items:center;border-radius:10px;background:#f0f2fb;color:#7c87b0;font-size:12px;font-weight:700;flex:none}
+.panel-heading strong{display:block;font-size:15px;font-weight:750}
+.panel-heading small{display:block;font-size:12px;color:#9299a8;font-weight:400;margin-top:1px}
+.panel-meta{color:#9aa1b0;display:flex;align-items:center;gap:13px;font-size:12px;white-space:nowrap}
+.chevron{font-size:13px;transition:transform .15s}
+.panel[open] .chevron{transform:rotate(90deg)}
+.panel[open]>summary{border-bottom:1px solid #edf0f5}
+.fields{padding:20px 22px 24px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.field{min-width:0;display:flex;flex-direction:column;gap:7px}
+.field.full{grid-column:1/-1}
+.field-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.field-label{font-size:13px;color:#4a5266;font-weight:700}
+.optional{font-size:11px;color:#afb5c2;font-weight:400}
+.field textarea{width:100%;height:94px;min-height:64px;resize:vertical;background:#fcfcfe;border:1px solid var(--line);border-radius:9px;padding:11px 12px;color:var(--ink);font-size:13px;line-height:1.65;transition:border .15s,background .15s}
+.field textarea:focus{outline:none;background:#fff;border-color:#8e9af0;box-shadow:0 0 0 3px rgba(88,104,208,.08)}
+.field textarea.short{height:70px}
+.field textarea.tall{height:122px}
+.field-hint{font-size:11px;color:#9aa1b0;line-height:1.5}
+.array-wrap{display:flex;flex-direction:column;gap:10px}
+.array-item{display:flex;gap:8px;align-items:stretch;background:#fcfcfe;border:1px solid var(--line);border-radius:9px;padding:7px}
+.array-item textarea{flex:1;min-width:0;border:0;background:transparent;resize:vertical;height:90px;min-height:70px;padding:6px 7px;outline:none;font-size:13px}
+.array-item textarea:focus{outline:none;border:0;box-shadow:none}
+.array-actions{display:flex;flex-direction:column;gap:3px}
+.array-actions button{height:27px;width:29px;border:0;background:transparent;color:#7e879a;border-radius:7px;font-size:15px;line-height:1}
+.array-actions button:hover{background:#eceffa;color:#3f4b65}
+.array-actions .remove:hover{background:#ffeeee;color:var(--danger)}
+.add-item{align-self:flex-start;border:1px dashed #bbc4e8;color:var(--accent);background:#fbfbff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700}
+.add-item:hover{background:var(--accent-soft)}
+.compat{margin-top:16px;border:1px dashed #d6dbee;background:#fff;border-radius:14px;padding:16px 19px}
+.compat h2{font-size:14px;margin:0 0 5px}
+.compat p{margin:0;color:var(--muted);font-size:12px}
+.extra-list{margin-top:13px;display:grid;gap:11px}
+.extra-item{background:#fafbff;padding:12px;border-radius:10px;border:1px solid var(--line)}
+.extra-title{font-size:12px;font-weight:700;margin-bottom:6px;word-break:break-all}
+.extra-item pre{font:12px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:105px;overflow:auto;color:#616b80;margin:0 0 9px}
+.extra-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.extra-controls select{min-width:180px;max-width:100%;flex:1;border:1px solid var(--line);padding:7px 9px;border-radius:8px;background:#fff;color:var(--ink);font-size:12px}
+.extra-controls .btn{min-height:33px;padding:6px 12px;font-size:12px}
+.footer{margin-top:26px;text-align:center;color:#a0a7b6;font-size:11px}
+.overlay{position:fixed;inset:0;background:rgba(23,32,63,.36);z-index:30;display:flex;align-items:center;justify-content:center;padding:17px}
+.overlay[hidden]{display:none}
+.dialog{background:#fff;border-radius:16px;box-shadow:0 20px 75px rgba(18,25,53,.18);padding:26px;width:min(500px,100%);max-height:85vh;overflow:auto}
+.dialog h2{font-size:19px;margin:0 0 8px}
+.dialog p{color:#737c8f;margin:0 0 18px;font-size:13px}
+.dialog .summary-box{background:#f6f7fc;padding:12px;border-radius:10px;font-size:12px;color:#596275;margin-bottom:18px;overflow-wrap:anywhere}
+.choice{display:flex;gap:9px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin:8px 0;cursor:pointer}
+.choice:has(input:checked){border-color:#b7c1ff;background:#f8f9ff}
+.choice input{margin-top:4px;accent-color:var(--accent)}
+.choice strong{display:block;font-size:13px}
+.choice small{display:block;font-size:12px;color:#8a93a5;margin-top:2px}
+.dialog-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:19px}
+.toast{position:fixed;left:50%;bottom:25px;transform:translate(-50%,15px);background:#26314c;color:white;border-radius:999px;padding:10px 19px;box-shadow:0 9px 25px rgba(10,20,50,.2);font-size:12px;z-index:99;pointer-events:none;opacity:0;transition:opacity .2s,transform .2s;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:690px){.shell{padding:23px 14px 72px}.hero-top{gap:9px;flex-direction:column}.save-state{padding-top:0}h1{font-size:24px}.toolbar-note{display:none}.actionbar{gap:7px;margin-top:17px}.actionbar>.btn{flex:1;padding:9px 7px}.actionbar .more>.btn{padding:9px 12px}.fields{padding:17px 15px 19px;grid-template-columns:1fr;gap:17px}.field.full{grid-column:1}.panel>summary{padding:16px 14px}.panel-heading{gap:9px}.panel-heading strong{font-size:14px}.panel-heading small{font-size:11px}.panel-meta{gap:8px}.dialog{padding:20px}.notice{margin-top:16px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="hero">
+  <div class="hero-top"><div><div class="kicker">CHARACTER STUDIO</div><h1>人设编辑器</h1><p class="lede">写角色，也写角色为什么会成为这样的人。</p></div><div class="save-state" id="saveState"><span class="dot"></span><span id="saveText">正在检查本地档案…</span></div></div>
+  <nav class="actionbar" aria-label="档案操作">
+    <button class="btn primary" type="button" id="exportJSON">导出 JSON</button>
+    <button class="btn" type="button" id="importJSON">导入 JSON</button>
+    <button class="btn" type="button" id="exportMD">导出 Markdown</button>
+    <details class="more" id="moreMenu"><summary class="btn ghost" title="其他操作">更多 ···</summary><div class="menu"><button type="button" id="copyMD">复制 Markdown</button><button type="button" id="expandAll">展开所有分类</button><button type="button" id="collapseAll">折叠所有分类</button><hr><button class="danger" type="button" id="clearAll">清空当前档案</button></div></details>
+    <span class="toolbar-note">JSON 负责保存与导入，MD 只供阅读</span>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+  </nav>
+  <div class="notice"><strong>档案说明：</strong>内容会尽量自动保存在当前浏览器；请定期导出 JSON 备份。Markdown 不参与导入，以免标题格式影响识别。</div>
+</header>
+<main>
+  <div class="content" id="sections"></div>
+  <section class="compat" id="compatPanel" hidden><h2>尚未归类的旧 JSON 字段 <span id="extraCount"></span></h2><p>遇到新版不认识的字段，会完整保留在 JSON 里，不会悄悄丢弃。你也可以选择归入某个现有栏目。</p><div class="extra-list" id="extraList"></div></section>
+  <p class="footer">本地单文件工具 · 不需要联网 · 所有填写内容均保存在你的浏览器或你主动导出的文件中</p>
+</main>
+</div>
+<div class="overlay" id="importOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="importHeading">
+  <div class="dialog"><h2 id="importHeading">导入人物档案</h2><p>已读取 JSON。选择如何处理当前页面中的内容。</p><div class="summary-box" id="importSummary"></div>
+    <label class="choice"><input type="radio" name="importMode" value="replace" checked><span><strong>替换当前档案</strong><small>以导入文件为准，当前未导出的内容将被覆盖。</small></span></label>
+    <label class="choice"><input type="radio" name="importMode" value="fill"><span><strong>仅补充空白栏目</strong><small>保留已有内容，只将旧 JSON 的内容放入空字段；列表在原有条目后追加且去重。</small></span></label>
+    <div class="dialog-actions"><button class="btn" type="button" id="cancelImport">取消</button><button class="btn primary" type="button" id="confirmImport">确认导入</button></div>
+  </div>
+</div>
+<div class="toast" role="status" aria-live="polite" id="toast"></div>
+<script>
+'use strict';
+/* 已发布的字段 key 绝不随分组与标题的变化而更名：这是旧版 JSON 可以正确归位的关键。 */
+const OLD_STORAGE_KEY='character_editor_autosave_v1';
+const STORAGE_KEY='character_editor_autosave_v2';
+const FIELDS=[
+ {key:'char_name',label:'姓名',short:true,aliases:['名字','角色名','名称','name']},
+ {key:'char_age_gender',label:'年龄 / 性别 / 生日',short:true,aliases:['年龄','性别','生日','年龄性别生日','基本信息']},
+ {key:'char_identity',label:'身份',aliases:['职业','职位','社会身份','角色身份','occupation']},
+ {key:'char_appearance',label:'外表',aliases:['外貌','外观','长相','外形','形象','appearance']},
+ {key:'char_core_personality',label:'核心人格',aliases:['核心性格','人格','性格','性格特征','人格特征','个性','personality']},
+ {key:'char_values',label:'价值观与底线',aliases:['价值观','原则','道德底线'],newField:true},
+ {key:'char_motivation',label:'核心动机与长期目标',aliases:['核心动机','人生目标','深层需求'],newField:true},
+ {key:'char_flaws',label:'弱点与内在矛盾',aliases:['弱点','缺点','内在冲突','性格矛盾'],newField:true},
+ {key:'char_emotional_triggers',label:'情绪触发与应对',aliases:['情绪触发','防御机制','情绪模式'],newField:true},
+ {key:'char_background',label:'个人历史',aliases:['过去','经历','背景','身世','成长经历','background']},
+ {key:'char_current_status',label:'当前状态 / 家庭关系',aliases:['当前状态','家庭关系','家庭','现状','当前处境','current status']},
+ {key:'char_relationships',label:'重要人物关系',aliases:['人际关系','主要关系','重要关系','关系网'],newField:true},
+ {key:'char_secrets',label:'秘密与信息边界',aliases:['秘密','隐瞒的信息','信息边界'],newField:true},
+ {key:'char_habits',label:'习惯',aliases:['行为习惯','日常习惯','行为模式','生活习惯','habits']},
+ {key:'char_communication_style',label:'沟通风格',aliases:['说话方式','语言风格','交流方式','表达方式','communication']},
+ {key:'char_preferences',label:'偏好与厌恶',aliases:['喜好','厌恶','喜恶','偏好'],newField:true},
+ {key:'char_evaluations',label:'他人评价',aliases:['人物评价','别人评价','外界评价','评价','evaluations']},
+ {key:'char_belongings',label:'人物拥有的东西',array:true,aliases:['拥有的东西','物品','持有物','装备','资产','belongings']},
+ {key:'char_abilities',label:'能力 / 天赋',array:true,aliases:['能力','天赋','技能','能力与天赋','abilities','skills']},
+ {key:'char_projects',label:'项目 / 成果',array:true,aliases:['项目','成果','作品','成就','projects','achievements']},
+ {key:'char_development',label:'成长弧与阶段变化',aliases:['成长弧','人物成长','人物变化','发展弧线'],newField:true},
+ {key:'char_plot_hooks',label:'未解问题与剧情钩子',aliases:['剧情钩子','未解问题','伏笔'],newField:true}
+];
+const GROUPS=[
+ {title:'基础档案',description:'读者第一眼看到的是谁',keys:['char_name','char_age_gender','char_identity','char_appearance']},
+ {title:'内在核心',description:'为什么这样想、这样选择',keys:['char_core_personality','char_values','char_motivation','char_flaws','char_emotional_triggers']},
+ {title:'经历与关系',description:'过去塑造了什么，现在牵连着谁',keys:['char_background','char_current_status','char_relationships','char_secrets']},
+ {title:'言行与细节',description:'让角色在对话与行动中变得可辨认',keys:['char_habits','char_communication_style','char_preferences','char_evaluations']},
+ {title:'能力与资源',description:'角色拥有什么，又能做到什么',keys:['char_belongings','char_abilities','char_projects']},
+ {title:'剧情中的变化',description:'可选：只写故事正在推动的部分',keys:['char_development','char_plot_hooks']}
+];
+const FIELD_TIPS={char_abilities:'建议每条说明：能力来源、效果、限制或代价、关联人物。',char_projects:'建议每条说明：项目定位、当前进展、成果、关联人物。',char_belongings:'可注明物品的用途、获得经过或特殊意义。',char_relationships:'侧重互动方式、信任与冲突；旧档案中的家庭信息仍保留在“当前状态 / 家庭关系”。'};
+const BY_KEY=new Map(FIELDS.map(f=>[f.key,f]));
+const ALIASES=new Map();
+function normalizeKey(k){return String(k||'').trim().toLowerCase().replace(/^#+\s*/, '').replace(/[\s_\-—–:：\/／（）()【】\[\]·•]+/g,'');}
+FIELDS.forEach(f=>[f.key,f.label,...(f.aliases||[])].forEach(label=>{const k=normalizeKey(label);if(!ALIASES.has(k))ALIASES.set(k,f.key);}));
+const elements={};let extraFields={};let saveTimer=0;let importCandidate=null;
+const $=id=>document.getElementById(id);
+function emptyData(){const d={};FIELDS.forEach(f=>d[f.key]=f.array?[]:'');return d;}
+function makeField(meta){
+ const root=document.createElement('div');root.className='field'+((meta.array || ['char_core_personality','char_background','char_current_status','char_relationships','char_secrets','char_communication_style','char_development','char_plot_hooks'].includes(meta.key))?' full':'');
+ const heading=document.createElement('div');heading.className='field-head';
+ const label=document.createElement('label');label.className='field-label';label.textContent=meta.label;
+ const id='field-'+meta.key;label.htmlFor=id;
+ heading.append(label);
+ if(meta.newField){const badge=document.createElement('span');badge.className='optional';badge.textContent='进阶 · 可选';heading.append(badge);}
+ root.append(heading);
+ if(meta.array){
+  const wrap=document.createElement('div');wrap.className='array-wrap';elements[meta.key]=wrap;
+  const btn=document.createElement('button');btn.className='add-item';btn.type='button';btn.textContent='+ 添加条目';btn.onclick=()=>{const el=createArrayItem(meta.key,'');wrap.insertBefore(el,btn);markChanged();el.querySelector('textarea').focus();};
+  wrap.append(btn);root.append(wrap);
+ }else{
+  const ta=document.createElement('textarea');ta.id=id;ta.dataset.field=meta.key;ta.setAttribute('aria-label',meta.label);ta.className=meta.short?'short':(root.classList.contains('full')?'tall':'');ta.spellcheck=false;ta.addEventListener('input',markChanged);elements[meta.key]=ta;root.append(ta);
+ }
+ if(FIELD_TIPS[meta.key]){const tip=document.createElement('div');tip.className='field-hint';tip.textContent=FIELD_TIPS[meta.key];root.append(tip);}
+ return root;
+}
+function renderGroups(){
+ const host=$('sections');host.textContent='';
+ GROUPS.forEach((group,i)=>{
+  const panel=document.createElement('details');panel.className='panel';panel.open=i<2;panel.dataset.group=String(i);
+  const summary=document.createElement('summary');
+  const left=document.createElement('div');left.className='panel-heading';
+  const num=document.createElement('span');num.className='panel-num';num.textContent=String(i+1).padStart(2,'0');
+  const names=document.createElement('div');const name=document.createElement('strong');name.textContent=group.title;
+  const detail=document.createElement('small');detail.textContent=group.description;names.append(name,detail);left.append(num,names);
+  const right=document.createElement('div');right.className='panel-meta';const count=document.createElement('span');count.className='panel-count';right.append(count);
+  const arrow=document.createElement('span');arrow.className='chevron';arrow.textContent='›';right.append(arrow);summary.append(left,right);
+  const fields=document.createElement('div');fields.className='fields';group.keys.forEach(key=>fields.append(makeField(BY_KEY.get(key))));
+  panel.append(summary,fields);host.append(panel);
+ });
+ updateCounts();
+}
+function createArrayItem(key,value){
+ const item=document.createElement('div');item.className='array-item';
+ const ta=document.createElement('textarea');ta.value=String(value??'');ta.setAttribute('aria-label',BY_KEY.get(key).label+'条目');ta.spellcheck=false;ta.addEventListener('input',markChanged);
+ const actions=document.createElement('div');actions.className='array-actions';
+ const up=document.createElement('button');up.textContent='↑';up.title='上移';up.type='button';up.onclick=()=>{const prev=item.previousElementSibling;if(prev&&prev.classList.contains('array-item')){item.parentElement.insertBefore(item,prev);markChanged();}};
+ const down=document.createElement('button');down.textContent='↓';down.title='下移';down.type='button';down.onclick=()=>{const next=item.nextElementSibling;if(next&&next.classList.contains('array-item')){item.parentElement.insertBefore(next,item);markChanged();}};
+ const del=document.createElement('button');del.textContent='×';del.title='删除该条目';del.className='remove';del.type='button';del.onclick=()=>{item.remove();markChanged();};
+ actions.append(up,down,del);item.append(ta,actions);return item;
+}
+function collectData(){const data={};FIELDS.forEach(f=>{
+  if(f.array){data[f.key]=Array.from(elements[f.key].querySelectorAll('.array-item textarea')).map(t=>t.value).filter(v=>v.trim());}
+  else data[f.key]=elements[f.key].value;
+ });return data;}
+function setData(data){FIELDS.forEach(f=>{
+  if(f.array){const wrap=elements[f.key];wrap.querySelectorAll('.array-item').forEach(e=>e.remove());let a=Array.isArray(data[f.key])?data[f.key]:[];a.forEach(t=>wrap.insertBefore(createArrayItem(f.key,t),wrap.lastElementChild));}
+  else elements[f.key].value=String(data[f.key]??'');
+ });updateCounts();}
+function countFilled(v){return Array.isArray(v)?v.some(x=>String(x).trim()):String(v??'').trim().length>0;}
+function updateCounts(){const data=collectData();document.querySelectorAll('.panel').forEach((panel,i)=>{
+ const keys=GROUPS[i].keys;const count=keys.filter(key=>countFilled(data[key])).length;panel.querySelector('.panel-count').textContent=`${count} / ${keys.length}`;
+ });}
+function setSaveStatus(message,state=''){const el=$('saveState');el.className='save-state '+state;$('saveText').textContent=message;}
+function persist(){clearTimeout(saveTimer);try{localStorage.setItem(STORAGE_KEY,JSON.stringify({data:collectData(),extra:extraFields}));setSaveStatus('已自动保存');return true;}catch(err){setSaveStatus('自动保存不可用，请导出 JSON','error');return false;}}
+function markChanged(){setSaveStatus('正在保存…','unsaved');updateCounts();clearTimeout(saveTimer);saveTimer=setTimeout(persist,350);}
+function loadSaved(){
+ let restored=false;
+ try{
+  const latest=localStorage.getItem(STORAGE_KEY);
+  if(latest){const j=JSON.parse(latest);const result=normalizeImported(j,true);setData(result.data);extraFields=result.extras;restored=true;}
+  else{
+   const old=localStorage.getItem(OLD_STORAGE_KEY);
+   if(old){const result=normalizeImported(JSON.parse(old),true);setData(result.data);extraFields=result.extras;restored=true;persist();toast('已自动接续旧版浏览器中的人设档案');}
+  }
+  if(!restored)setSaveStatus('已就绪 · 本地自动保存');else setSaveStatus('已恢复本地档案');
+ }catch(err){setSaveStatus('本地恢复失败，请导入 JSON','error');}
+ renderExtras();
+}
+function plainObject(v){return !!v&&typeof v==='object'&&!Array.isArray(v);}
+function asText(v){if(v==null)return '';if(typeof v==='string')return v;if(typeof v==='number'||typeof v==='boolean')return String(v);return JSON.stringify(v,null,2);}
+function asArray(v){if(v==null)return [];return (Array.isArray(v)?v:[v]).map(asText).filter(t=>t.trim());}
+function combineValues(oldValue,newValue,meta){
+ if(meta.array)return [...(Array.isArray(oldValue)?oldValue:[]),...asArray(newValue)];
+ const t=asText(newValue);return oldValue&&t?oldValue+'\n\n'+t:oldValue||t;
+}
+function normalizeImported(json,fromLocal=false){
+ if(!plainObject(json))throw new Error('JSON 顶层必须是对象');
+ let source=json;
+ if(plainObject(json.data))source=json.data;
+ else if(plainObject(json.character))source=json.character;
+ else if(plainObject(json.fields))source=json.fields;
+ const data=emptyData();const extras={};
+ // 兼容旧版扁平 JSON、v2 包装 JSON、以及使用可读标题作为 key 的 JSON。
+ const preserved=plainObject(json._extra)?json._extra:(plainObject(json.extra)?json.extra:{});
+ Object.assign(extras,preserved);
+ const metadataKeys=new Set(['_meta','_extra','extra','metadata','schemaVersion','schema_version','version','exportedAt']);
+ for(const [key,v] of Object.entries(source)){
+  if(metadataKeys.has(key)||key==='data'||key==='character'||key==='fields')continue;
+  let target=BY_KEY.has(key)?key:ALIASES.get(normalizeKey(key));
+  if(target){const meta=BY_KEY.get(target);data[target]=combineValues(data[target],v,meta);}
+  else extras[key]=v;
+ }
+ // 本地缓存里的 extra 也可能独立于 data 存放。
+ if(fromLocal&&plainObject(json.extra))Object.assign(extras,json.extra);
+ return {data,extras};
+}
+function exportObject(){const data=collectData();const exportData={_meta:{format:'character-editor',schemaVersion:2,exportedAt:new Date().toISOString()},...data};if(Object.keys(extraFields).length)exportData._extra=extraFields;return exportData;}
+function download(text,name,mime){const blob=new Blob([text],{type:mime+';charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);}
+function filenameBase(){const name=collectData().char_name.split(/\r?\n/)[0].trim().replace(/[\\/:*?"<>|\u0000-\u001f]/g,'').slice(0,35);return name||'人物设定';}
+function exportJSON(){persist();download(JSON.stringify(exportObject(),null,2),filenameBase()+'.json','application/json');toast('JSON 档案已导出');}
+function buildMarkdown(){const data=collectData();const lines=['# '+(data.char_name.split(/\r?\n/)[0].trim()||'人物设定'),''];
+ GROUPS.forEach(group=>{
+  const entries=group.keys.filter(k=>countFilled(data[k]));if(!entries.length)return;
+  lines.push('## '+group.title,'');
+  entries.forEach(key=>{
+   const meta=BY_KEY.get(key);lines.push('### '+meta.label,'');
+   if(meta.array){data[key].forEach((item,i)=>{const body=String(item).trim();const first=(body.split(/\r?\n/)[0]||'').replace(/^\s*(?:#{1,6}|[-*+])\s*/, '').trim();const itemTitle=first&&first.length<=40?first:'第 '+(i+1)+' 条';lines.push('#### '+(i+1)+'. '+itemTitle,'',body,'');});}
+   else lines.push(String(data[key]).trim(),'');
+  });
+ });
+ if(Object.keys(extraFields).length){lines.push('## 未分类的旧 JSON 字段','');Object.entries(extraFields).forEach(([k,v])=>lines.push('### '+k,'','```json',JSON.stringify(v,null,2)??'null','```',''));}
+ return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim()+'\n';}
+function exportMD(){download(buildMarkdown(),filenameBase()+'.md','text/markdown');toast('已导出阅读版 Markdown');}
+async function copyMD(){try{await navigator.clipboard.writeText(buildMarkdown());toast('Markdown 已复制');}catch(e){const ta=document.createElement('textarea');ta.value=buildMarkdown();ta.style.position='fixed';ta.style.opacity='0';document.body.append(ta);ta.select();let success=false;try{success=document.execCommand('copy');}catch(_){}ta.remove();toast(success?'Markdown 已复制':'复制失败，请使用导出 Markdown');}}
+function renderExtras(){
+ const keys=Object.keys(extraFields);$('compatPanel').hidden=keys.length===0;$('extraCount').textContent='('+keys.length+')';const box=$('extraList');box.textContent='';
+ keys.forEach(key=>{
+  const card=document.createElement('div');card.className='extra-item';const title=document.createElement('div');title.className='extra-title';title.textContent=key;
+  const pre=document.createElement('pre');pre.textContent=typeof extraFields[key]==='string'?extraFields[key]:JSON.stringify(extraFields[key],null,2);
+  const ctr=document.createElement('div');ctr.className='extra-controls';const sel=document.createElement('select');sel.setAttribute('aria-label',`归类 ${key}`);
+  const empty=document.createElement('option');empty.value='';empty.textContent='选择归属字段…';sel.append(empty);
+  FIELDS.forEach(f=>{const o=document.createElement('option');o.value=f.key;o.textContent=f.label;sel.append(o);});
+  const move=document.createElement('button');move.className='btn';move.type='button';move.textContent='归入此字段';move.onclick=()=>{
+   if(!sel.value){toast('请先选择归属字段');return;}
+   const f=BY_KEY.get(sel.value);const d=collectData();d[sel.value]=combineValues(d[sel.value],extraFields[key],f);
+   delete extraFields[key];setData(d);renderExtras();markChanged();toast('已归入「'+f.label+'」');
+  };
+  ctr.append(sel,move);card.append(title,pre,ctr);box.append(card);
+ });
+}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._timer);t._timer=setTimeout(()=>t.classList.remove('show'),2600);}
+function closeMenu(){$('moreMenu').open=false;}
+function onImportFile(e){const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+ const reader=new FileReader();reader.onload=()=>{
+  try{
+   const raw=JSON.parse(String(reader.result).replace(/^\uFEFF/,''));
+   importCandidate=normalizeImported(raw);
+   const recognized=FIELDS.filter(meta=>countFilled(importCandidate.data[meta.key])).length;
+   if(recognized===0&&Object.keys(importCandidate.extras).length===0)throw new Error('文件内没有可识别的档案内容');
+   $('importSummary').textContent=`文件：${f.name}｜识别字段：${recognized} 项｜保留的未知字段：${Object.keys(importCandidate.extras).length} 项`;
+   document.querySelector('input[name=importMode][value=replace]').checked=true;
+   $('importOverlay').hidden=false;$('confirmImport').focus();
+  }catch(err){importCandidate=null;toast('无法导入：'+err.message);}
+ };reader.onerror=()=>toast('读取文件失败');reader.readAsText(f);
+}
+function applyImport(){if(!importCandidate)return;
+ const mode=document.querySelector('input[name=importMode]:checked').value;
+ if(mode==='replace'){setData(importCandidate.data);extraFields={...importCandidate.extras};}
+ else{
+  const old=collectData(),newData=importCandidate.data;
+  FIELDS.forEach(f=>{if(f.array){const existing=Array.isArray(old[f.key])?old[f.key]:[];const incoming=Array.isArray(newData[f.key])?newData[f.key]:[];old[f.key]=[...existing,...incoming.filter(t=>!existing.includes(t))];}
+   else if(!old[f.key].trim())old[f.key]=newData[f.key];});
+  extraFields={...importCandidate.extras,...extraFields};setData(old);
+ }
+ importCandidate=null;$('importOverlay').hidden=true;renderExtras();persist();toast('JSON 已导入，各字段已自动归位');
+}
+function clearAll(){closeMenu();if(!confirm('确定清空当前人物档案？请先导出 JSON 备份，清空后无法撤销。'))return;
+ setData(emptyData());extraFields={};renderExtras();persist();toast('当前人物档案已清空');
+}
+renderGroups();loadSaved();
+$('exportJSON').addEventListener('click',exportJSON);
+$('importJSON').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',onImportFile);
+$('exportMD').addEventListener('click',exportMD);
+$('copyMD').addEventListener('click',()=>{closeMenu();copyMD();});
+$('expandAll').addEventListener('click',()=>{document.querySelectorAll('.panel').forEach(el=>el.open=true);closeMenu();});
+$('collapseAll').addEventListener('click',()=>{document.querySelectorAll('.panel').forEach(el=>el.open=false);closeMenu();});
+$('clearAll').addEventListener('click',clearAll);
+$('cancelImport').addEventListener('click',()=>{$('importOverlay').hidden=true;importCandidate=null;});
+$('confirmImport').addEventListener('click',applyImport);
+$('importOverlay').addEventListener('click',e=>{if(e.target===$('importOverlay')){$('importOverlay').hidden=true;importCandidate=null;}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('importOverlay').hidden=true;importCandidate=null;closeMenu();}});
+document.addEventListener('click',e=>{if(!$('moreMenu').contains(e.target))closeMenu();});
+window.addEventListener('beforeunload',()=>{if(saveTimer)persist();});
+</script>
+</body>
+</html>
